@@ -8,16 +8,30 @@
 %--------------------------------------------------------------------------
 
 % Config
+format compact
 clear all,
 myPath = '.\Material\database\';
 prompt = 'Enter image name: (E.g. Moedas1.jpg)';
-title = 'Image Name';
+titledlg = 'Image Name';
 se = strel('disk',10);
 mainMenuOptionAux = 0;
 visualizationMenuAux = 0;
 
 % Image Input
-imageName = inputdlg(prompt, title);
+imageName = inputdlg(prompt, titledlg);
+img = imread(strcat(myPath,imageName{1}));
+imgM = imgaussfilt(img);
+th = graythresh(imgM(:,:,1));
+bw1 = im2bw(imgM(:,:,1), th);
+bw1Closed = imclose(bw1, se);
+[lb num]=bwlabel(bw1Closed);
+rprops = regionprops('table', lb, 'Area', 'Centroid', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength', 'EquivDiameter');
+centers = rprops.Centroid;
+perimeters = rprops.Perimeter;
+areas = rprops.Area;
+diameters = rprops.EquivDiameter;
+radii = diameters/2;
+imgBound = bwboundaries(bw1Closed, 'noholes');
 
 % Main Menu
 
@@ -92,22 +106,117 @@ while mainMenuOptionAux ~= -1
     % Visualization Menu
 
     if mainMenuOptionAux == 1 
-        while visualizationMenuAux == 0
-            visualizationMenuOption = questdlg('Show visualization for', 'Visualization Menu', 'All objects', 'Select object', 'Back', 'Back');
-            switch visualizationMenuOption
-                case 'All objects'
-                    visualizationMenuAux = 1;
-                case 'Select object'
-                    visualizationMenuAux = 2;
-                otherwise
-                    mainMenuOptionAux = 0
-                    visualizationMenuAux = -1
-                    delete(gcf);
+        while visualizationMenuAux ~= -1
+            if visualizationMenuAux == 0
+                visualizationMenuOption = questdlg('Show visualization for', 'Visualization Menu', 'All objects', 'Select object', 'Back', 'Back');
+                switch visualizationMenuOption
+                    case 'All objects'
+                        visualizationMenuAux = 1;
+                    case 'Select object'
+                        visualizationMenuAux = 2;
+                    otherwise
+                        mainMenuOptionAux = 0
+                        visualizationMenuAux = -1
+                        delete(gcf);
+                end
             end
+            
             if visualizationMenuAux == 1
+                visualizationMenuOption = questdlg('Show', 'Visualization Menu', 'Object count/Centroids/Perimeters/Area', 'Relative Distance/Sharpness', 'Back', 'Back');
+                switch visualizationMenuOption
+                    case 'Object count/Centroids/Perimeters/Area'
+                        visualizationMenuAux = 3;
+                    case 'Relative Distance/Sharpness'
+                        visualizationMenuAux = 4;
+                    otherwise
+                        visualizationMenuAux = 0;
+                        delete(gcf);
+                end
+            end
+            
+            if visualizationMenuAux == 3
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+                % Show count of objects
+                subplot(2,2,1), imshow(img);
+                hold on;
+                for i = 1:length(imgBound)
+                    coinBound = imgBound{i};
+                    plot(coinBound(:,2), coinBound(:,1), 'r', 'LineWidth', 2);
+                end
+                title('Number of objects');
+                text(10, 700,strcat('Number of Objects',{' '}, int2str(num)),'FontSize', 14, 'Color', 'Red');
+                
+                % Show centroids of objects
+                subplot(2,2,2), imshow(img);
+                hold on;
+                plot(centers(:,1), centers(:,2), '.r', 'MarkerSize', 20);
+                title('Centroids of objects');
+                
+                % Show perimeters of objects
+                subplot(2,2,3), imshow(img);
+                hold on;
+                text(centers(:,1) - radii/2, centers(:,2), num2str(perimeters), 'FontSize', 8,'Color', 'Red');
+                title('Perimeters of objects');
+                
+                % Show area of objects
+                subplot(2,2,4), imshow(img);
+                hold on;
+                text(centers(:,1) - radii/2 , centers(:,2), num2str(areas), 'FontSize', 8,'Color', 'Red');
+                title('Areas of objects');
+                visualizationMenuAux = 0;
+                
+            end
+               
+            if visualizationMenuAux == 4
+                % Show Relative Distance to an object
+                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+                imshow(img);
+                hold on;
+                [r, c] = ginput(1);
+                inside = 0;
+                for i = 1:num
+                    x = centers(i,1);
+                    y = centers(i,2);
+                    d = sqrt((x - r)^2 + (y - c)^2) <= radii(i);
+                    if d == 1
+                        inside = 1;
+                        r = x;
+                        c = y;
+                        break;
+                    else
+                        inside = 0;
+                    end
+                end
+                
+                if inside == 0
+                    visualizationMenuAux = 1;
+                    break
+                end
+                    
+                rel = [];
+                
+                for i = 1:num
+                    x = centers(i,1);
+                    y = centers(i,2);
+                    line = [r x;c y];
+                    rel = cat(2, rel, line);
+                end
+                plot(rel(1,:)', rel(2,:)', 'r', 'LineWidth', 2);
+                
+                dist = [];
+                points = [];
+                for i = 1:num
+                    x = centers(i,1);
+                    y = centers(i,2);
+                    d = sqrt((r - x)^2 + (c - y)^2);
+                    dist = cat(1,dist, d);
+                    points = cat(2,points, [(r+x)/2 + 10;(c+y)/2 + 10]);
+                end
+                text(points(1,:)', points(2,:)', num2str(dist), 'FontSize', 12,'Color', 'White');
+                title('Relative Distance');
                 visualizationMenuAux = 0;
             end
-
+            
             if visualizationMenuAux == 2
                 visualizationMenuAux = 0;
             end
@@ -116,7 +225,7 @@ while mainMenuOptionAux ~= -1
     
     %Choose another image
     if mainMenuOptionAux == 9
-        imageName = inputdlg(prompt, title);
+        imageName = inputdlg(prompt, titledlg);
         mainMenuOptionAux = 0;
     end
         
@@ -124,16 +233,4 @@ end
 
 
 
-
-% Visualization Menu
-
-img = imread(strcat(myPath,imageName{1}));
-imgM = imgaussfilt(img);
-th = graythresh(imgM(:,:,1));
-bw1 = im2bw(imgM(:,:,1), th);
-bw1Closed = imclose(bw1, se);
-[lb num]=bwlabel(bw1Closed);
-rprops = regionprops(lb,'Area','BoundingBox','Centroid','Perimeter');
-figure();
-imshow(bw1Closed);
 
