@@ -30,7 +30,19 @@ imgM = imgaussfilt(img);
 th = graythresh(imgM(:,:,1));
 bw1 = im2bw(imgM(:,:,1), th);
 bw1Closed = imclose(bw1, se);
-[lb num]=bwlabel(bw1Closed);
+
+% Detect object collision
+D = bwdist(~bw1Closed);
+D = -D;
+borderMask = imextendedmin(D,5);
+borderD = imimposemin(D, borderMask);
+L = watershed(borderD);
+L(~bw1Closed) = 0;
+imgAfter = bw1Closed;
+imgAfter(~L) = 0;
+
+
+[lb num]=bwlabel(imgAfter);
 rprops = regionprops('table', lb, 'Area', 'BoundingBox', 'Centroid', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength', 'EquivDiameter');
 centers = rprops.Centroid;
 perimeters = rprops.Perimeter;
@@ -38,11 +50,16 @@ areas = rprops.Area;
 diameters = rprops.EquivDiameter;
 bboxes = rprops.BoundingBox;
 radii = diameters/2;
+imgBound = bwboundaries(imgAfter, 'noholes');
 sharps = [];
 for i = 1:num
-    imgMini = img(floor(bboxes(i,2)): ceil(bboxes(i,2) + bboxes(i,4)), floor(bboxes(i,1)): ceil(bboxes(i,1) + bboxes(i,3)),:);
-    sharpAux = double(rgb2gray(imgMini));
-    [Fx, Fy] = gradient(sharpAux);
+    imgGray = double(rgb2gray(img));
+    [r, c] = size(imgGray);
+    %imgMini = img(floor(bboxes(i,2)): ceil(bboxes(i,2) + bboxes(i,4)), floor(bboxes(i,1)): ceil(bboxes(i,1) + bboxes(i,3)),:);
+    coinBound = imgBound{i};
+    sharpMask = poly2mask(coinBound(:,2), coinBound(:,1), r, c);
+    imgGray(~sharpMask) = 0;
+    [Fx, Fy] = gradient(imgGray);
     F=sqrt((Fx.^2) + (Fy.^2));
     sharpness=sum(sum(F))./(numel(F));
     sharps = cat(1, sharps, sharpness);
@@ -57,7 +74,6 @@ elseif num >= 4
 else
     splotrows = 1;
 end
-imgBound = bwboundaries(bw1Closed, 'noholes');
 
 % Application
 
@@ -725,7 +741,18 @@ while mainMenuOptionAux ~= -1
             th = graythresh(imgM(:,:,1));
             bw1 = im2bw(imgM(:,:,1), th);
             bw1Closed = imclose(bw1, se);
-            [lb num]=bwlabel(bw1Closed);
+            
+            % Detect object collision
+            D = bwdist(~bw1Closed);
+            D = -D;
+            borderMask = imextendedmin(D,5);
+            borderD = imimposemin(D, borderMask);
+            L = watershed(borderD);
+            L(~bw1Closed) = 0;
+            imgAfter = bw1Closed;
+            imgAfter(~L) = 0;
+            
+            [lb num]=bwlabel(imgAfter);
             rprops = regionprops('table', lb, 'Area','BoundingBox', 'Centroid', 'Perimeter', 'MajorAxisLength', 'MinorAxisLength', 'EquivDiameter');
             centers = rprops.Centroid;
             perimeters = rprops.Perimeter;
@@ -733,11 +760,16 @@ while mainMenuOptionAux ~= -1
             diameters = rprops.EquivDiameter;
             radii = diameters/2;
             bboxes = rprops.BoundingBox;
+            imgBound = bwboundaries(imgAfter, 'noholes');
             sharps = [];
             for i = 1:num
-                imgMini = img(floor(bboxes(i,2)): ceil(bboxes(i,2) + bboxes(i,4)), floor(bboxes(i,1)): ceil(bboxes(i,1) + bboxes(i,3)),:);
-                sharpAux = double(rgb2gray(imgMini));
-                [Fx, Fy] = gradient(sharpAux);
+                imgGray = double(rgb2gray(img));
+                [r, c] = size(imgGray);
+                %imgMini = img(floor(bboxes(i,2)): ceil(bboxes(i,2) + bboxes(i,4)), floor(bboxes(i,1)): ceil(bboxes(i,1) + bboxes(i,3)),:);
+                coinBound = imgBound{i};
+                sharpMask = poly2mask(coinBound(:,2), coinBound(:,1), r, c);
+                imgGray(~sharpMask) = 0;
+                [Fx, Fy] = gradient(imgGray);
                 F=sqrt((Fx.^2) + (Fy.^2));
                 sharpness=sum(sum(F))./(numel(F));
                 sharps = cat(1, sharps, sharpness);
@@ -752,7 +784,6 @@ while mainMenuOptionAux ~= -1
             else
                 splotrows = 1;
             end
-            imgBound = bwboundaries(bw1Closed, 'noholes');
         otherwise
             mainMenuOptionAux = -1;
             delete(gcf);
