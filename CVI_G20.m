@@ -29,7 +29,7 @@ img = imread(strcat(myPath,imageName{1}));
 imgM = imgaussfilt(img);
 th = graythresh(imgM(:,:,1));
 bw1 = im2bw(imgM(:,:,1), th);
-bw1Closed = imclose(bw1, se);
+bw1Closed = imopen(bw1, se);
 
 % Detect object collision
 D = bwdist(~bw1Closed);
