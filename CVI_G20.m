@@ -34,8 +34,7 @@ bw1Closed = imopen(bw1, se);
 % Detect object collision
 D = bwdist(~bw1Closed);
 D = -D;
-borderMask = imextendedmin(D,5);
-borderD = imimposemin(D, borderMask);
+borderD = imhmin(D, 5);
 L = watershed(borderD);
 L(~bw1Closed) = 0;
 imgAfter = bw1Closed;
@@ -745,8 +744,7 @@ while mainMenuOptionAux ~= -1
             % Detect object collision
             D = bwdist(~bw1Closed);
             D = -D;
-            borderMask = imextendedmin(D,5);
-            borderD = imimposemin(D, borderMask);
+            borderD = imhmin(D, 5);
             L = watershed(borderD);
             L(~bw1Closed) = 0;
             imgAfter = bw1Closed;
