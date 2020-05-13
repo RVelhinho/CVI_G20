@@ -24,10 +24,7 @@ while choosingImage
     titledlg = 'Image Name';
     sizedlg = [1 35];
     placeholder = {'Moedas1.jpg'};
-    imageName = inputdlg(prompt, titledlg, sizedlg, placeholder);
-    if size(imageName) == 0
-        break;
-    end
+    imageName = inputdlg(prompt, titledlg, sizedlg, placeholder)1,
     img = imread(strcat(myPath,imageName{1}));
 
 
@@ -847,69 +844,12 @@ while choosingImage
 
 
             case 2 % Geometrical Transformation
-                                                
-                % Choose Object
-                delete(gcf);
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
-                imshow(img);
-                hold on;
 
-                inside = false;
-                while ~inside
-                    [r, c] = ginput(1);
-
-                    for i = 1:num
-                        x = centers(i,1);
-                        y = centers(i,2);
-                        inside = sqrt((x - r)^2 + (y - c)^2) <= radii(i);
-
-                        if inside
-                            selected = i;
-                            break;
-                        end
-
-                    end
-                end
-                close;
-
-                c = imgBound{selected}(:,2).';
-                r = imgBound{selected}(:,1).';
-                imgPoly = roipoly(img, c, r);
-                mask = cast(imgPoly, class(img));
-                imgCropped = img .* repmat(mask, [1 1 3]);
-
-                imgCropped = imcrop(imgCropped, [min(c) min(r) max(c)-min(c) max(r)-min(r)]);
-                rotation = 60;
-                imgRotated = imrotate(imgCropped, rotation, 'nearest', 'crop');
-                resize = 1.5;
-                imgResized = imresize(imgRotated, resize);
-                
-                r = imgResized(:, :, 1);
-                g = imgResized(:, :, 2);
-                b = imgResized(:, :, 3);
-                mask = r ~= 0 & g ~= 0 & b ~= 0;
-
-                imgSize = size(imgResized);
-                x2 = x - imgSize(2)/2
-                y2 = y - imgSize(1)/2
-
-                delete(gcf);
-                set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
-
-                subplot(1,2,1); imshow(img);
-                hold on;
-                plot(imgBound{selected}(:,2), imgBound{selected}(:,1), 'r', 'LineWidth', 2);
-                title('Original Image');
-                
-                subplot(1,2,2); imshow(img);
-                hold on;
-                image(x2, y2, imgResized, 'AlphaData', mask);
-                title('Geometrical transformation');
-                text(10, 700,strcat('Rotation:', {' '}, num2str(rotation), 'o | Size:', {' '}, num2str(resize), 'x'),'FontSize', 16, 'Color', 'Black');
+                disp(imgBound{1});
 
 
             case 3 % Money Count
-                
+                                                    
                 delete(gcf);
                 set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
                 imshow(img);
