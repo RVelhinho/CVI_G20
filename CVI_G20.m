@@ -812,7 +812,63 @@ while choosingImage
 
                                     case 3 % Heatmap
             
-                                        %TODO
+                                        % Choose Object
+                                        delete(gcf);
+                                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+                                        imshow(img);
+                                        hold on;
+
+                                        inside = false;
+                                        while ~inside
+                                            [r, c] = ginput(1);
+
+                                            for i = 1:num
+                                                x = centers(i,1);
+                                                y = centers(i,2);
+                                                inside = sqrt((x - r)^2 + (y - c)^2) <= radii(i);
+
+                                                if inside
+                                                    selected = i;
+                                                    break;
+                                                end
+
+                                            end
+                                        end
+                                        close;
+
+                                        % Heatmap
+                                        [h, w, d] = size(img);
+                                        X = [centers(:,1)' 0 0 w w]'
+                                        Y = [centers(:,2)' 0 h 0 h]'
+                                        dist = [];
+
+                                        for i = 1:length(X)
+                                            d = sqrt((x - X(i))^2 + (y - Y(i))^2);
+                                            dist = cat(1, dist, d);
+                                        end
+
+                                        distPercent = (dist*100)/sqrt((h^2)+(w^2));
+
+                                        heatmap = [];
+                                        F = scatteredInterpolant(Y, X, distPercent, 'natural');
+                                        for i = 1:h
+                                            for j = 1:w
+                                                heatmap(i,j) = F(i,j);
+                                            end
+                                        end
+                                        alpha = (~isnan(heatmap))*0.6;
+                                        
+                                        delete(gcf);
+                                        set(gcf, 'Units', 'Normalized', 'OuterPosition', [0, 0.04, 1, 0.96]);
+                                        imshow(img);
+                                        hold on
+
+                                        heatmap = imshow(heatmap);
+                                        caxis auto;
+                                        % colormap( heatmap.Parent, jet );
+                                        colormap( heatmap.Parent, flipud(jet) );
+                                        colorbar( heatmap.Parent );
+                                        set( heatmap, 'AlphaData', alpha );
 
 
                                     case 4 % Back
@@ -872,12 +928,12 @@ while choosingImage
                 end
                 close;
 
+                % Geometrical Transformation
                 c = imgBound{selected}(:,2).';
                 r = imgBound{selected}(:,1).';
                 imgPoly = roipoly(img, c, r);
                 mask = cast(imgPoly, class(img));
                 imgCropped = img .* repmat(mask, [1 1 3]);
-
                 imgCropped = imcrop(imgCropped, [min(c) min(r) max(c)-min(c) max(r)-min(r)]);
                 rotation = 60;
                 imgRotated = imrotate(imgCropped, rotation, 'nearest', 'crop');
